@@ -1,10 +1,33 @@
 from typing import Sequence, Optional, List, Tuple
 
 import numpy as np
+import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
-from quantization import mu_law_encode_np
+from pathlib import Path
+
+from util.quantization import mu_law_encode_np
+
+def load_series_from_csv(csv_path: Path, value_col: str = "max") -> np.ndarray | None:
+    """
+    From each normalized Zenodo CSV, extract a 1D series from value_col (default: 'max'),
+    sorted by utc if present. Assumes data is already normalized.
+    """
+    df = pd.read_csv(csv_path)
+
+    if "utc" in df.columns:
+        df["utc"] = pd.to_datetime(df["utc"], errors="coerce")
+        df = df.dropna(subset=["utc"]).sort_values("utc")
+
+    if value_col not in df.columns:
+        return None
+
+    y = pd.to_numeric(df[value_col], errors="coerce").dropna().to_numpy(dtype=np.float64)
+    if y.size < 10:
+        return None
+
+    return y
 
 
 class RandomWaveNetSegments(Dataset):

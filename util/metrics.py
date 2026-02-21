@@ -5,9 +5,12 @@ from typing import Dict, Sequence
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
+from torch.utils.data import DataLoader
 
-from core.training import predict_sampled_window
+from core.inference import predict_sampled_window
 from core.wavenet import WaveNetCategorical
+from util import Cfg
+from util.quantization import mu_law_decode_np
 
 
 def metrics_1d(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
@@ -61,3 +64,56 @@ def save_random_postcue_plots(
         fname = out_dir / f"{split_name}_rand{j:02d}_epoch{int(ei):05d}_h{int(round(cfg.horizon_s*1000))}ms.png"
         plt.savefig(fname, dpi=150)
         plt.close()
+
+@torch.no_grad()
+def eval_teacher_forced_metrics(model: WaveNetCategorical, val_loader: DataLoader, cfg: Cfg, device: torch.device,
+                                max_batches: int = 200) -> dict:
+    """
+    Teacher-forced evaluation:
+    - input is the shifted quantized sequence
+    - model outputs logits for each timestep
+    - we compute expected value (in continuous space) from the predicted categorical distribution
+    - compare vs decoded true values
+    """
+    model.eval()
+    rf = int(cfg.receptive_field)
+
+    centers = np.linspace(cfg.amp_min, cfg.amp_max, cfg.n_bins, dtype=np.float64)
+    centers_t = torch.tensor(centers, device=device, dtype=torch.float32)  # [K]
+
+    y_true_all = []
+    y_pred_all = []
+
+    for bi, (xb, yb) in enumerate(val_loader):
+        if bi >= max_batches:
+            break
+
+        xb = xb.to(device)  # [B,T] long
+        yb = yb.to(device)  # [B,T] long
+
+        logits = model(xb)  # [B,K,T]
+        logits_v = logits[:, :, rf:]              # [B,K,T-rf]
+        y_v = yb[:, rf:]                          # [B,T-rf]
+
+        probs = torch.softmax(logits_v, dim=1)    # [B,K,T-rf]
+        # expected value per timestep: sum_k p(k)*center(k)
+        y_pred = (probs * centers_t.view(1, -1, 1)).sum(dim=1)  # [B,T-rf]
+
+        # decode true labels back to continuous values
+        y_true = mu_law_decode_np(
+            y_v.detach().cpu().numpy(),
+            mu=cfg.n_bins - 1,
+            amp_max=cfg.amp_max,
+        )  # [B,T-rf]
+        y_true = y_true.reshape(-1)
+        y_pred = y_pred.detach().cpu().numpy().reshape(-1)
+
+        y_true_all.append(y_true)
+        y_pred_all.append(y_pred)
+
+    if not y_true_all:
+        return {"MSE": float("nan"), "MAE": float("nan"), "Corr": float("nan"), "N": 0.0}
+
+    y_true_cat = np.concatenate(y_true_all)
+    y_pred_cat = np.concatenate(y_pred_all)
+    return metrics_1d(y_true_cat, y_pred_cat)
