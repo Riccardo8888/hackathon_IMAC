@@ -1,11 +1,10 @@
-from layers import CausalConv1d
 import torch.nn as nn
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-from typing import Dict, List, Optional, Sequence, Tuple
-from util.wavenet import dilations_1s_context
-from core.layers import WaveNetBlock
 
+from core.layers import WaveNetBlock
+from util.wavenet import dilations_1s_context
 
 
 class WaveNetCategorical(nn.Module):

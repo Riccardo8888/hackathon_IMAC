@@ -1,16 +1,18 @@
-from core.wavenet import WaveNetCategorical
+import logging
+import time
+from pathlib import Path
+from typing import Dict, List, Optional, Sequence, Tuple
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
+
+from core.wavenet import WaveNetCategorical
 from util.datasets import RandomWaveNetSegments
-from torch.utils.data import Dataset, DataLoader
-import logging
-from typing import Dict, List, Optional, Sequence, Tuple
-import numpy as np
-from pathlib import Path
-import time
-from util.quantization import mu_law_encode_np, mu_law_decode_np
 from util.metrics import metrics_1d
+from util.quantization import mu_law_encode_np, mu_law_decode_np
 
 
 def train_model(

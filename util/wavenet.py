@@ -1,5 +1,6 @@
+from typing import List, Sequence
+
 import numpy as np
-from typing import Dict, List, Optional, Sequence, Tuple
 
 
 # - kernel=2

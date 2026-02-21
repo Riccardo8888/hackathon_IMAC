@@ -1,8 +1,11 @@
 from typing import Sequence, Optional, List, Tuple
+
 import numpy as np
-from torch.utils.data import Dataset, DataLoader
 import torch
+from torch.utils.data import Dataset
+
 from quantization import mu_law_encode_np
+
 
 class RandomWaveNetSegments(Dataset):
     def __init__(

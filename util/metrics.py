@@ -1,13 +1,14 @@
 import logging
 from pathlib import Path
+from typing import Dict, Sequence
 
 import numpy as np
-from typing import Dict, Sequence
 import torch
 from matplotlib import pyplot as plt
 
 from core.training import predict_sampled_window
 from core.wavenet import WaveNetCategorical
+
 
 def metrics_1d(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
     y_true = np.asarray(y_true, dtype=np.float64)
