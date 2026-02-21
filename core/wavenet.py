@@ -8,7 +8,7 @@ from core.layers import WaveNetBlock
 
 
 
-class EEGWaveNetCategorical(nn.Module):
+class WaveNetCategorical(nn.Module):
     """Input labels (B,T) in [0..K-1], shift-right convention.
     Output logits (B,K,T).
     """
