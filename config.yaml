@@ -7,6 +7,7 @@ data_preparation:
 
 training:
   training_windows_dataset: "data/windowed/"
+  out_dir: "model_output/"
 
 frontend:
   plots_directory: "frontend/usage-forecast-ui/src/assets/plots/"
