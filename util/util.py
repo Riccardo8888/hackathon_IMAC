@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import torch
 
 try:
@@ -43,6 +44,9 @@ def setup_logger(out_dir: Path) -> logging.Logger:
     lg.addHandler(fh)
     return lg
 
+def load_epochs_from_npz(path) -> list[np.ndarray]:
+    data = np.load(path)
+    return [data[k] for k in sorted(data.files)]
 
 # Data loading
 def load_json_epochs(path: str):
@@ -86,3 +90,44 @@ def set_seed(seed: int = 0):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+def read_window_df(path: Path) -> pd.DataFrame:
+    if path.suffix.lower() == ".parquet":
+        return pd.read_parquet(path)
+    if path.name.lower().endswith(".csv.gz"):
+        return pd.read_csv(path, compression="gzip")
+    if path.suffix.lower() == ".csv":
+        return pd.read_csv(path)
+    raise ValueError(f"Unsupported window file type: {path}")
+
+def list_window_files(window_path: str | Path, recursive: bool = True) -> list[Path]:
+    p = Path(window_path)
+    if p.is_file():
+        return [p]
+    pats = ["*/.parquet", "*/.csv.gz", "*/.csv"] if recursive else [".parquet", ".csv.gz", "*.csv"]
+    files = []
+    for pat in pats:
+        files.extend(p.glob(pat))
+    return sorted(set(files))
+
+def load_centered_series_from_window_file(path: Path, value_col: str = "max") -> tuple[np.ndarray, float] | tuple[None, None]:
+    """
+    Returns:
+      y_centered: y - mean(y)   (no scaling)
+      mu: mean(y)              (for later un-centering in plots)
+    """
+    df = read_window_df(path)
+
+    if "utc" in df.columns:
+        df["utc"] = pd.to_datetime(df["utc"], errors="coerce")
+        df = df.dropna(subset=["utc"]).sort_values("utc")
+
+    if value_col not in df.columns:
+        return None, None
+
+    y = pd.to_numeric(df[value_col], errors="coerce").dropna().to_numpy(dtype=np.float64)
+    if y.size < 10:
+        return None, None
+
+    mu = float(np.mean(y))
+    return (y - mu), mu

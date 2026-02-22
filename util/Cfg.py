@@ -11,8 +11,8 @@ class Cfg:
     horizon_s: float = 0.01
 
     # quantization range
-    amp_min = -8.0e-05
-    amp_max =  8.0e-05
+    amp_min = 0
+    amp_max =  15
     n_bins: int = 256
 
     # architecture
@@ -24,7 +24,7 @@ class Cfg:
     lr: float = 1e-3
     lr_decay_gamma: float = 0.99
     batch_size: int = 32
-    epochs: int = 600
+    epochs: int = 400
 
     seq_len: int = 2000
     train_samples_per_epoch: int = 12000

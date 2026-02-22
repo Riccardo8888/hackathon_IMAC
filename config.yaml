@@ -1,8 +1,12 @@
 data_preparation:
-  raw_dataset: "data/raw_data"
-  raw_dataset_csv: "data/raw_data_csv"
-  normalized_dataset_output: "data/normalized"
-  windowed_dataset: "data/windows"
+  raw_dataset: "data/raw_data/"
+  raw_dataset_csv: "data/raw_data_csv/"
+  normalized_dataset_output: "data/normalized/"
+  windowed_dataset: "data/windowed/"
+  npz_data_output: "data/processed.npz"
 
 training:
-  training_dataset: "none yet"
+  training_windows_dataset: "data/windowed/"
+
+frontend:
+  plots_directory: "frontend/usage-forecast-ui/src/assets/plots/"
